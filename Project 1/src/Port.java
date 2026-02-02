@@ -1,22 +1,24 @@
+import java.net.InetAddress;
+
 public class Port {
-    private final String udpPort;
-    private final String ipAddress;
+    private final int udpPort;
+    private final InetAddress ipAddress;
 
     public Port () {
-        udpPort = "0";
-        ipAddress = "0";
+        udpPort = 0;
+        ipAddress = null;
     }
 
-    public Port (String udpPort, String ipAddress) {
+    public Port (int udpPort, InetAddress ipAddress) {
         this.udpPort = udpPort;
         this.ipAddress = ipAddress;
     }
 
-    public String getUdpPort() {
+    public int getUdpPort() {
         return udpPort;
     }
 
-    public String getIpAddress() {
+    public InetAddress getIpAddress() {
         return ipAddress;
     }
 }
