@@ -24,6 +24,6 @@ public class Packet {
     }
 
     public String createFrameString() {
-        return destinationAddress + ":" + sourceAddress + ":" + data;
+        return sourceAddress + ":" + destinationAddress + ":" + data;
 }
 }

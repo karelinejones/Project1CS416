@@ -1,8 +1,10 @@
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
+import java.net.InetAddress;
 
 public class Parser {
     File config;
@@ -12,7 +14,7 @@ public class Parser {
     }
 
     
-    public Port parseMac (String macAddress) throws FileNotFoundException {
+    public Port parseMac (String macAddress) throws FileNotFoundException, UnknownHostException {
         Scanner fileReader = new Scanner(config);
         boolean notMac = true;
         Port port = new Port();
@@ -22,14 +24,14 @@ public class Parser {
             String[] sectionedLine = line.split(" ");
             if (sectionedLine[0].equals(macAddress)) {
                 notMac = false;
-                port = new Port(sectionedLine[1], sectionedLine[2]);
+                port = new Port(Integer.parseInt(sectionedLine[1]), InetAddress.getByName(sectionedLine[2]));
             }
         }
 
         return port;
     }
 
-    public HashMap<String, Port> getNeighbors (String macAddress) throws FileNotFoundException {
+    public HashMap<String, Port> getNeighbors (String macAddress) throws FileNotFoundException, UnknownHostException {
         Scanner fileReader = new Scanner(config);
         boolean linksSection = false;
         HashMap<String, Port> neighbors = new HashMap<>();
