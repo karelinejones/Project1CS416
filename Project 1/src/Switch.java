@@ -30,6 +30,9 @@ public class Switch {
 
             //If the destination address is in the switch table, find the neighbor with matching udp port and send to them
             if(switchTable.containsKey(incomingPacket.getDestinationAddress())) {
+                if(!switchTable.containsKey(incomingPacket.getSourceAddress())) {
+                    switchTable.put(incomingPacket.getSourceAddress(), incoming.getPort());
+                }
                 byte[] outgoingByte = incomingPacket.createFrameString().getBytes();
                 for (String s : neighbors.keySet()) {
                     Port p = neighbors.get(s);
