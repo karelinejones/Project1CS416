@@ -28,6 +28,31 @@ public class Host {
         System.out.println("Host " + macAddress + " started at " + ipAddress.getHostAddress() + ":" + port);
         System.out.println("MAC: " + macAddress);
         System.out.println("Connected to: " + neighbors.keySet());
+
+        executorService.submit(() -> {
+            while (!socket.isClosed()) {
+                try {
+                    byte[] buffer = new byte[1024];
+                    DatagramPacket recvPacket = new DatagramPacket(buffer, buffer.length);
+                    socket.receive(recvPacket);
+                    String frame = new String(recvPacket.getData(), 0, recvPacket.getLength());
+                    Packet p = new Packet(frame);
+
+                    if (p.getDestinationAddress().equals(macAddress)) {
+                        System.out.println("\n[" + macAddress + "] Received:");
+                        System.out.println("  Src: " + p.getSourceAddress());
+                        System.out.println("  Dst: " + p.getDestinationAddress());
+                        System.out.println("  Data: " + p.getData());
+                    } else {
+                        wrongMAC(p);
+                    }
+                } catch (IOException e) {
+                    if (!socket.isClosed()) {
+                        System.err.println("Error receiving: " + e.getMessage());
+                    }
+                }
+            }
+        });
     }
 
     public void send(String data, String destinationMac) {
@@ -65,24 +90,18 @@ public class Host {
                 String frame = new String(recvPacket.getData(), 0, recvPacket.getLength());
                 Packet p = new Packet(frame);
 
-                        if (WrongMAC(p)) {
+                        if (p.getDestinationAddress().equals(macAddress)) {
                             System.out.println("\n[" + macAddress + "] Received:");
                             System.out.println("  Src: " + p.getSourceAddress());
                             System.out.println("  Dst: " + p.getDestinationAddress());
                             System.out.println("  Data: " + p.getData());
+                        } else {
+                            wrongMAC(p);
                         }
             } catch (IOException e) {
                 System.err.println("Error receiving: " + e.getMessage());
             }
         });
-    }
-
-    private boolean WrongMAC(Packet p) {
-        if (!p.getDestinationAddress().equals(macAddress)) {
-            System.err.println("[" + macAddress + "] Packet dropped — destination " + p.getDestinationAddress() + " does not match MAC " + macAddress);
-            return false;
-        }
-        return true;
     }
 
     public void close() {
@@ -92,6 +111,10 @@ public class Host {
         if (socket != null && !socket.isClosed()) {
             socket.close();
         }
+    }
+
+    private void wrongMAC(Packet p) {
+        System.err.println("[" + macAddress + "] Packet dropped — destination " + p.getDestinationAddress() + " does not match MAC " + macAddress);
     }
 
     public static void runHostA() throws Exception {
