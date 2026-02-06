@@ -60,7 +60,7 @@ public class Switch {
 
     public static void printSwitchTable(HashMap<String, Integer> switchTable) {
         System.out.println("Switch Table:");
-        System.out.println("MAC Address\tPort");
+        System.out.println("MAC\tPort");
         for (String mac : switchTable.keySet()) {
             System.out.println(mac + "\t" + switchTable.get(mac));
         }

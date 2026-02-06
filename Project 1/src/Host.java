@@ -81,30 +81,6 @@ public class Host {
         });
     }
 
-    public void receive() {
-        executorService.submit(() -> {
-            try {
-                byte[] buffer = new byte[1024];
-                DatagramPacket recvPacket = new DatagramPacket(buffer, buffer.length);
-                System.out.println("[" + macAddress + "] Listening...");
-                socket.receive(recvPacket);
-                String frame = new String(recvPacket.getData(), 0, recvPacket.getLength());
-                Packet p = new Packet(frame);
-
-                        if (p.getDestinationAddress().equals(macAddress)) {
-                            System.out.println("\n[" + macAddress + "] Received:");
-                            System.out.println("  Src: " + p.getSourceAddress());
-                            System.out.println("  Dst: " + p.getDestinationAddress());
-                            System.out.println("  Data: " + p.getData());
-                        } else {
-                            wrongMAC(p);
-                        }
-            } catch (IOException e) {
-                System.err.println("Error receiving: " + e.getMessage());
-            }
-        });
-    }
-
     public void close() {
         if (executorService != null && !executorService.isShutdown()) {
             executorService.shutdownNow();
@@ -116,55 +92,6 @@ public class Host {
 
     private void wrongMAC(Packet p) {
         System.err.println("[" + macAddress + "] Packet dropped — destination " + p.getDestinationAddress() + " does not match MAC " + macAddress);
-    }
-
-    public static void runHostA() throws Exception {
-        File config = new File("config.txt");
-        Host host = new Host("A", config);
-        host.start();
-        host.runInteractive();
-    }
-
-    public static void runHostB() throws Exception {
-        File config = new File("config.txt");
-        Host host = new Host("B", config);
-        host.start();
-        host.runInteractive();
-    }
-
-    public static void runHostC() throws Exception {
-        File config = new File("config.txt");
-        Host host = new Host("C", config);
-        host.start();
-        host.runInteractive();
-    }
-
-    public static void runHostD() throws Exception {
-        File config = new File("config.txt");
-        Host host = new Host("D", config);
-        host.start();
-        host.runInteractive();
-    }
-
-    private void runInteractive() {
-        Scanner keyboard = new Scanner(System.in);
-        while (true) {
-            System.out.println("\n1. Send\n2. Exit");
-            System.out.print("Choice: ");
-            String choice = keyboard.nextLine();
-
-            if (choice.equals("1")) {
-                System.out.print("Destination (A/B/C/D): ");
-                String dest = keyboard.nextLine().toUpperCase();
-                System.out.print("Message: ");
-                String msg = keyboard.nextLine();
-                send(msg, dest);
-            } else if (choice.equals("2")) {
-                close();
-                break;
-            }
-        }
-        keyboard.close();
     }
 
     public static void main(String[] args) throws Exception {
