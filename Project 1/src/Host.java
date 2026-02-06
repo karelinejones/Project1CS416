@@ -2,6 +2,8 @@ import java.util.Scanner;
 import java.net.*;
 import java.util.HashMap;
 import java.io.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Host {
     private String macAddress;
@@ -9,6 +11,7 @@ public class Host {
     private int port;
     private DatagramSocket socket;
     private HashMap<String, Port> neighbors;
+    private ExecutorService executorService;
 
     public Host(String macAddress, File config) throws UnknownHostException, FileNotFoundException {
         this.macAddress = macAddress;
@@ -21,43 +24,71 @@ public class Host {
 
     public void start() throws IOException {
         socket = new DatagramSocket(port);
+        executorService = Executors.newCachedThreadPool();
         System.out.println("Host " + macAddress + " started at " + ipAddress.getHostAddress() + ":" + port);
         System.out.println("MAC: " + macAddress);
         System.out.println("Connected to: " + neighbors.keySet());
     }
 
-    public void send (String data, String destinationMac) throws IOException {
-        String frame = this.macAddress + ":" + destinationMac + ":" + data;
-        Packet packet = new Packet(frame);
-        System.out.println("[" + macAddress + "] Sending:");
-        System.out.println("  Src: " + packet.getSourceAddress());
-        System.out.println("  Dst: " + packet.getDestinationAddress());
-        System.out.println("  Data: " + packet.getData());
+    public void send(String data, String destinationMac) {
+        executorService.submit(() -> {
+            try {
+                String frame = this.macAddress + ":" + destinationMac + ":" + data;
+                Packet packet = new Packet(frame);
+                System.out.println("[" + macAddress + "] Sending:");
+                System.out.println("  Src: " + packet.getSourceAddress());
+                System.out.println("  Dst: " + packet.getDestinationAddress());
+                System.out.println("  Data: " + packet.getData());
 
-        for (Port neighborPort : neighbors.values()) {
-            byte[] sendData = frame.getBytes();
-            InetAddress destAddress = (neighborPort.getIpAddress());
-            int destPort = (neighborPort.getUdpPort());
-            DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, destAddress, destPort);
-            socket.send(sendPacket);
-            System.out.println("  -> " + destAddress.getHostAddress() + ":" + destPort);
-            break;
+                for (Port neighborPort : neighbors.values()) {
+                    byte[] sendData = frame.getBytes();
+                    InetAddress destAddress = (neighborPort.getIpAddress());
+                    int destPort = (neighborPort.getUdpPort());
+                    DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, destAddress, destPort);
+                    socket.send(sendPacket);
+                    System.out.println("  -> " + destAddress.getHostAddress() + ":" + destPort);
+                    break;
+                }
+            } catch (IOException e) {
+                System.err.println("Error sending: " + e.getMessage());
+            }
+        });
+    }
+
+    public void receive() {
+        executorService.submit(() -> {
+            try {
+                byte[] buffer = new byte[1024];
+                DatagramPacket recvPacket = new DatagramPacket(buffer, buffer.length);
+                System.out.println("[" + macAddress + "] Listening...");
+                socket.receive(recvPacket);
+                String frame = new String(recvPacket.getData(), 0, recvPacket.getLength());
+                Packet p = new Packet(frame);
+
+                        if (WrongMAC(p)) {
+                            System.out.println("\n[" + macAddress + "] Received:");
+                            System.out.println("  Src: " + p.getSourceAddress());
+                            System.out.println("  Dst: " + p.getDestinationAddress());
+                            System.out.println("  Data: " + p.getData());
+                        }
+            } catch (IOException e) {
+                System.err.println("Error receiving: " + e.getMessage());
+            }
+        });
+    }
+
+    private boolean WrongMAC(Packet p) {
+        if (!p.getDestinationAddress().equals(macAddress)) {
+            System.err.println("[" + macAddress + "] Packet dropped — destination " + p.getDestinationAddress() + " does not match MAC " + macAddress);
+            return false;
         }
+        return true;
     }
-    public void receive() throws IOException {
-        byte[] buffer = new byte[1024];
-        DatagramPacket recvPacket = new DatagramPacket(buffer, buffer.length);
-        System.out.println("[" + macAddress + "] Listening...");
-        socket.receive(recvPacket);
-        String frame = new String(recvPacket.getData(), 0, recvPacket.getLength());
-        Packet p = new Packet(frame);
 
-        System.out.println("[" + macAddress + "] Received:");
-        System.out.println("  Src: " + p.getSourceAddress());
-        System.out.println("  Dst: " + p.getDestinationAddress());
-        System.out.println("  Data: " + p.getData());
-    }
     public void close() {
+        if (executorService != null && !executorService.isShutdown()) {
+            executorService.shutdownNow();
+        }
         if (socket != null && !socket.isClosed()) {
             socket.close();
         }
@@ -94,7 +125,7 @@ public class Host {
     private void runInteractive() {
         Scanner keyboard = new Scanner(System.in);
         while (true) {
-            System.out.println("\n1. Send\n2. Receive\n3. Exit");
+            System.out.println("\n1. Send\n2. Exit");
             System.out.print("Choice: ");
             String choice = keyboard.nextLine();
 
@@ -103,18 +134,8 @@ public class Host {
                 String dest = keyboard.nextLine().toUpperCase();
                 System.out.print("Message: ");
                 String msg = keyboard.nextLine();
-                try {
-                    send(msg, dest);
-                } catch (IOException e) {
-                    System.err.println("Error sending: " + e.getMessage());
-                }
+                send(msg, dest);
             } else if (choice.equals("2")) {
-                try {
-                    receive();
-                } catch (IOException e) {
-                    System.err.println("Error receiving: " + e.getMessage());
-                }
-            } else if (choice.equals("3")) {
                 close();
                 break;
             }
@@ -135,7 +156,7 @@ public class Host {
 
         Scanner keyboard = new Scanner(System.in);
         while (true) {
-            System.out.println("\n1. Send\n2. Receive\n3. Exit");
+            System.out.println("\n1. Send\n2. Exit");
             System.out.print("Choice: ");
             String choice = keyboard.nextLine();
 
@@ -146,8 +167,6 @@ public class Host {
                 String msg = keyboard.nextLine();
                 host.send(msg, dest);
             } else if (choice.equals("2")) {
-                host.receive();
-            } else if (choice.equals("3")) {
                 host.close();
                 break;
             }
