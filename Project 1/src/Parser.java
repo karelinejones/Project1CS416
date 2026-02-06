@@ -44,7 +44,7 @@ public class Parser {
                     Port neighborPort = parseMac(macAddresses[1]);
                     neighbors.put(macAddresses[1], neighborPort);
                 }
-                else {
+                else if (macAddresses[1].equals(macAddress)){
                     Port neighborPort = parseMac(macAddresses[0]);
                     neighbors.put(macAddresses[0], neighborPort);
                 }

@@ -6,8 +6,8 @@ public class Packet {
     public Packet(String rawFrame) {
         String[] splitFrame = rawFrame.split(":");
 
-        destinationAddress = splitFrame[0];
-        sourceAddress = splitFrame[1];
+        sourceAddress = splitFrame[0];
+        destinationAddress = splitFrame[1];
         data = splitFrame[2];
     }
 

@@ -27,7 +27,7 @@ public class Host {
     }
 
     public void send (String data, String destinationMac) throws IOException {
-        String frame = destinationMac + ":" + this.macAddress + ":" + data;
+        String frame = this.macAddress + ":" + destinationMac + ":" + data;
         Packet packet = new Packet(frame);
         System.out.println("[" + macAddress + "] Sending:");
         System.out.println("  Src: " + packet.getSourceAddress());
@@ -129,7 +129,7 @@ public class Host {
         }
 
         String macAddress = args[0];
-        File config = new File("config.txt");
+        File config = new File("Project 1/src/config.txt");
         Host host = new Host(macAddress, config);
         host.start();
 
